@@ -10,7 +10,7 @@ app.use('/health', require('./healthcheck'));
 
 app.listen(port, () => {
   console.log(`XRP Ledger Countdown listening at http://localhost:${port}`);
-})
+});
 
 var slack = new Slack();
 slack.setWebhook(process.env['WEBHOOK_URI']);
