@@ -1,0 +1,4 @@
+apiVersion: v1
+description: XRP Ledger Countdown
+name: ripplex-xrpl-countdown
+version: 0.0.1

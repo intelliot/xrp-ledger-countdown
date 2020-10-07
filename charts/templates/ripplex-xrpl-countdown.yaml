@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+    spec:
+      containers:
+      - image: {{ .Values.releaseImage }}
+        name: {{ .Release.Name }}
+        livenessProbe:
+          httpGet:
+              path: /health
+              port: 3001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+              path: /health
+              port: 3001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3001
+          name: public
+        resources:
+          limits:
+            cpu: 100m
+            memory: 250Mi
+          requests:
+            cpu: 50m
+            memory: 50Mi

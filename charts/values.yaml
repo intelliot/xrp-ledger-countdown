@@ -1,0 +1,4 @@
+releaseImage: gcr.io/xpring-dev-sandbox/ripplex-xrpl-countdown:latest
+proxyng:
+  install: true
+  releaseImage: gcr.io/xpring-dev-sandbox/xpring_nginx:0.0.3
