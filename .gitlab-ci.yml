@@ -1,0 +1,65 @@
+stages:
+    - publish
+    - deploy
+  
+  variables:
+    GCR_PROJECT_ID: xpring-dev-sandbox
+    GCLOUD_PROJECT_ID: xpring-dev-sandbox
+    CLUSTER_NAME: poc1-cluster
+    CLUSTER_REGION: us-central1
+    RELEASE_NAME: ripplex-xrpl-countdown
+    RELEASE_ENV: dev
+  
+  include:
+    - project: 'xpring/xpring-ci-templates'
+      file: '/templates/build_for_gcr.yml'
+  
+  # Build a docker image and push it to the GCR associated with $GCLOUD_PROJECT_ID
+  build/publish:
+    stage: publish
+    extends: .publish
+    variables:
+      GCLOUD_PROJECT_ID: $GCR_PROJECT_ID
+  
+  # This is a template that is used below. It does not do anything by itself
+  .deploy_vcr:
+    extends: .deploy
+    needs: ["build/publish"]
+    when: manual
+    script:
+      - export IMAGE_UID="$(cat image_uid.meta.txt)"
+      - kubectl create namespace ${RELEASE_NAME}-${RELEASE_ENV} || true
+      - helm dep update ./charts
+      - helm upgrade --install --namespace ${RELEASE_NAME}-${RELEASE_ENV}
+          --set RIPPLED_URI=$RIPPLED_URI
+          --set SLACK_TOKEN=$SLACK_TOKEN
+          --set SLACK_CHANNEL_ID=$SLACK_CHANNEL_ID
+          --set releaseImage="gcr.io/$GCR_PROJECT_ID/$CI_PROJECT_NAME:$IMAGE_UID"
+          ${RELEASE_NAME}-${RELEASE_ENV} ./charts
+  
+  deploy to stg:
+    stage: deploy
+    extends: .deploy_vcr
+    variables:
+      RELEASE_ENV: stg
+      GCLOUD_PROJECT_ID: xpring-testnet
+      CLUSTER_NAME: xpring-testnet-cluster01
+      CLUSTER_REGION: us-central1
+  # TODO: how is FULL_DNS_NAME used?
+      FULL_DNS_NAME: example.com
+      RIPPLED_URI: $RIPPLED_URI_STG
+      SLACK_TOKEN: $SLACK_TOKEN_STG
+      SLACK_CHANNEL_ID: $SLACK_CHANNEL_ID_STG
+  
+  deploy to prod:
+    stage: deploy
+    extends: .deploy_vcr
+    variables:
+      RELEASE_ENV: prod
+      GCLOUD_PROJECT_ID: xpring-testnet
+      CLUSTER_NAME: xpring-testnet-cluster01
+      CLUSTER_REGION: us-central1
+      FULL_DNS_NAME: example.com
+      RIPPLED_URI: $RIPPLED_URI_PROD
+      SLACK_TOKEN: $SLACK_TOKEN_PROD
+      SLACK_CHANNEL_ID: $SLACK_CHANNEL_ID_PROD
